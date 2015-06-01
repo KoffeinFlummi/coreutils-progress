@@ -21,6 +21,7 @@
 #include <assert.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
+#include <sys/time.h>
 #include <selinux/selinux.h>
 
 #if HAVE_HURD_H
@@ -195,6 +196,74 @@ create_hole (int fd, char const *name, bool punch_holes, off_t size)
   return true;
 }
 
+/* Returns a human-readable file size.
+   todo: move this somewhere more appropriate. */
+static char*
+readable_fsize(off_t size, char* buf)
+{
+  int i = 0;
+  double size_f = (double)size;
+  const char* units[] = {" B", "KB", "MB", "GB", "TB", "PB"};
+  while (size_f > 1000 && i < 5)
+    {
+      size_f /= 1024.0;
+      ++i;
+    }
+
+  sprintf(buf, "%3.2f%s", size_f, units[i]);
+  return buf;
+}
+
+
+/* Emit the current progress.
+   todo: move this somewhere more appropriate. */
+static void
+emit_progress (off_t size_done, off_t size_total, clock_t start, bool final)
+{
+  if (final)
+    size_done = size_total;
+
+  double elapsed = (clock() - start) / (double)CLOCKS_PER_SEC;
+  int done = 0;
+  if (size_total != 0)
+    done = size_done / (size_total / 100);
+
+  char str_done[512];
+  readable_fsize(size_done, str_done);
+  char str_total[512];
+  readable_fsize(size_total, str_total);
+
+  char progress_bar[] = "-------------------------";
+  for (int i = 0; i < 25; i++)
+    {
+      if (done > i*4)
+        progress_bar[i] = '#';
+    }
+
+  off_t speed = 0;
+  if (elapsed != 0)
+    speed = size_done / elapsed;
+  char str_speed[512];
+  readable_fsize(speed, str_speed);
+
+  int seconds = (size_total - size_done) / speed;
+  if (final)
+    seconds = (int)elapsed;
+  int minutes = seconds / 60;
+  seconds -= minutes * 60;
+
+  printf("\e[?25l");
+
+  if (final)
+    printf(" %3i%s [%s]   %8s / %s   %8s/s  %02i:%02i total  \n", done, "%", progress_bar,
+      str_done, str_total, str_speed, minutes, seconds);
+  else
+    printf(" %3i%s [%s]   %8s / %s   %8s/s  %02i:%02i ETA  \r", done, "%", progress_bar,
+      str_done, str_total, str_speed, minutes, seconds);
+
+  printf("\e[?25h");
+}
+
 
 /* Copy the regular file open on SRC_FD/SRC_NAME to DST_FD/DST_NAME,
    honoring the MAKE_HOLES setting and using the BUF_SIZE-byte buffer
@@ -212,12 +281,18 @@ sparse_copy (int src_fd, int dest_fd, char *buf, size_t buf_size,
              size_t hole_size, bool punch_holes,
              char const *src_name, char const *dst_name,
              uintmax_t max_n_read, off_t *total_n_read,
-             bool *last_write_made_hole)
+             bool *last_write_made_hole, bool progress)
 {
   *last_write_made_hole = false;
   *total_n_read = 0;
   bool make_hole = false;
   off_t psize = 0;
+
+  off_t size_done = 0;
+  off_t size_total = lseek(src_fd, 0, SEEK_END);
+  lseek(src_fd, 0, SEEK_SET);
+  clock_t start_time = clock();
+  clock_t last_progress = 0;
 
   while (max_n_read)
     {
@@ -264,6 +339,16 @@ sparse_copy (int src_fd, int dest_fd, char *buf, size_t buf_size,
             {
               if (! transition)
                 psize += csize;
+
+              if (progress)
+                {
+                  size_done += psize;
+                  if (clock() - last_progress > CLOCKS_PER_SEC / 100)
+                    {
+                      last_progress = clock();
+                      emit_progress(size_done, size_total, start_time, false);
+                    }
+                }
 
               if (! prev_hole)
                 {
@@ -315,6 +400,8 @@ sparse_copy (int src_fd, int dest_fd, char *buf, size_t buf_size,
          for each file.  Unfortunately that doesn't work for
          certain files in /proc or /sys with linux kernels.  */
     }
+
+  emit_progress(size_done, size_total, start_time, true);
 
   /* Ensure a trailing hole is created, so that subsequent
      calls of sparse_copy() start at the correct offset.  */
@@ -388,7 +475,7 @@ extent_copy (int src_fd, int dest_fd, char *buf, size_t buf_size,
              size_t hole_size, off_t src_total_size,
              enum Sparse_type sparse_mode,
              char const *src_name, char const *dst_name,
-             bool *require_normal_copy)
+             bool *require_normal_copy, bool progress)
 {
   struct extent_scan scan;
   off_t last_ext_start = 0;
@@ -507,7 +594,7 @@ extent_copy (int src_fd, int dest_fd, char *buf, size_t buf_size,
               if ( ! sparse_copy (src_fd, dest_fd, buf, buf_size,
                                   sparse_mode == SPARSE_ALWAYS ? hole_size: 0,
                                   true, src_name, dst_name, ext_len, &n_read,
-                                  &wrote_hole_at_eof))
+                                  &wrote_hole_at_eof, progress))
                 goto fail;
 
               dest_pos = ext_start + n_read;
@@ -999,7 +1086,7 @@ static bool
 copy_reg (char const *src_name, char const *dst_name,
           const struct cp_options *x,
           mode_t dst_mode, mode_t omitted_permissions, bool *new_dst,
-          struct stat const *src_sb)
+          struct stat const *src_sb, bool progress)
 {
   char *buf;
   char *buf_alloc = NULL;
@@ -1269,7 +1356,8 @@ copy_reg (char const *src_name, char const *dst_name,
           if (extent_copy (source_desc, dest_desc, buf, buf_size, hole_size,
                            src_open_sb.st_size,
                            make_holes ? x->sparse_mode : SPARSE_NEVER,
-                           src_name, dst_name, &normal_copy_required))
+                           src_name, dst_name, &normal_copy_required,
+                           x->progress))
             goto preserve_metadata;
 
           if (! normal_copy_required)
@@ -1285,7 +1373,7 @@ copy_reg (char const *src_name, char const *dst_name,
                          make_holes ? hole_size : 0,
                          x->sparse_mode == SPARSE_ALWAYS, src_name, dst_name,
                          UINTMAX_MAX, &n_read,
-                         &wrote_hole_at_eof))
+                         &wrote_hole_at_eof, x->progress))
         {
           return_val = false;
           goto close_src_and_dst_desc;
@@ -2614,7 +2702,7 @@ copy_internal (char const *src_name, char const *dst_name,
          used only by 'install', which POSIX does not specify and
          where DST_MODE_BITS is what's wanted.  */
       if (! copy_reg (src_name, dst_name, x, dst_mode_bits & S_IRWXUGO,
-                      omitted_permissions, &new_dst, &src_sb))
+                      omitted_permissions, &new_dst, &src_sb, x->progress))
         goto un_backup;
     }
   else if (S_ISFIFO (src_mode))

@@ -238,6 +238,9 @@ struct cp_options
   /* If true, display the names of the files before copying them. */
   bool verbose;
 
+  /* If true, display the progress in copying the current file. */
+  bool progress;
+
   /* If true, stdin is a tty.  */
   bool stdin_tty;
 

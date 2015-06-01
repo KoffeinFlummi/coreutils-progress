@@ -141,6 +141,7 @@ static struct option const long_opts[] =
   {"target-directory", required_argument, NULL, 't'},
   {"update", no_argument, NULL, 'u'},
   {"verbose", no_argument, NULL, 'v'},
+  {"progress", no_argument, NULL, 'V'},
   {GETOPT_SELINUX_CONTEXT_OPTION_DECL},
   {GETOPT_HELP_OPTION_DECL},
   {GETOPT_VERSION_OPTION_DECL},
@@ -227,6 +228,8 @@ Copy SOURCE to DEST, or multiple SOURCE(s) to DIRECTORY.\n\
                                  than the destination file or when the\n\
                                  destination file is missing\n\
   -v, --verbose                explain what is being done\n\
+  -V, --progress               show progress, speed and estimated time\n\
+                                 remaining (implies --verbose)\n\
   -x, --one-file-system        stay on this file system\n\
 "), stdout);
       fputs (_("\
@@ -809,6 +812,7 @@ cp_option_init (struct cp_options *x)
 
   x->update = false;
   x->verbose = false;
+  x->progress = false;
 
   /* By default, refuse to open a dangling destination symlink, because
      in general one cannot do that safely, give the current semantics of
@@ -943,7 +947,7 @@ main (int argc, char **argv)
      we'll actually use backup_suffix_string.  */
   backup_suffix_string = getenv ("SIMPLE_BACKUP_SUFFIX");
 
-  while ((c = getopt_long (argc, argv, "abdfHilLnprst:uvxPRS:TZ",
+  while ((c = getopt_long (argc, argv, "abdfHilLnprst:uvVxPRS:TZ",
                            long_opts, NULL))
          != -1)
     {
@@ -1095,6 +1099,11 @@ main (int argc, char **argv)
 
         case 'v':
           x.verbose = true;
+          break;
+
+        case 'V':
+          x.verbose = true;
+          x.progress = true;
           break;
 
         case 'x':
