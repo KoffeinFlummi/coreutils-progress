@@ -401,7 +401,8 @@ sparse_copy (int src_fd, int dest_fd, char *buf, size_t buf_size,
          certain files in /proc or /sys with linux kernels.  */
     }
 
-  emit_progress(size_done, size_total, start_time, true);
+  if (progress)
+    emit_progress(size_done, size_total, start_time, true);
 
   /* Ensure a trailing hole is created, so that subsequent
      calls of sparse_copy() start at the correct offset.  */
@@ -1086,7 +1087,7 @@ static bool
 copy_reg (char const *src_name, char const *dst_name,
           const struct cp_options *x,
           mode_t dst_mode, mode_t omitted_permissions, bool *new_dst,
-          struct stat const *src_sb, bool progress)
+          struct stat const *src_sb)
 {
   char *buf;
   char *buf_alloc = NULL;
@@ -2702,7 +2703,7 @@ copy_internal (char const *src_name, char const *dst_name,
          used only by 'install', which POSIX does not specify and
          where DST_MODE_BITS is what's wanted.  */
       if (! copy_reg (src_name, dst_name, x, dst_mode_bits & S_IRWXUGO,
-                      omitted_permissions, &new_dst, &src_sb, x->progress))
+                      omitted_permissions, &new_dst, &src_sb))
         goto un_backup;
     }
   else if (S_ISFIFO (src_mode))
