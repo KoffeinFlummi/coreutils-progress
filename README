@@ -5,6 +5,8 @@ Most of these programs have significant advantages over their Unix
 counterparts, such as greater speed, additional options, and fewer
 arbitrary limits.
 
+This fork adds a --progress option to cp.
+
 The programs that can be built with this package are:
 
   [ arch base64 basename cat chcon chgrp chmod chown chroot cksum comm
