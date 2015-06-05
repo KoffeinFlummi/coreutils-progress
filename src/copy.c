@@ -215,56 +215,6 @@ readable_fsize(off_t size, char* buf)
 }
 
 
-/* Emit the current progress.
-   todo: move this somewhere more appropriate. */
-static void
-emit_progress (off_t size_done, off_t size_total, clock_t start, bool final)
-{
-  if (final)
-    size_done = size_total;
-
-  double elapsed = (clock() - start) / (double)CLOCKS_PER_SEC;
-  int done = 0;
-  if (size_total != 0)
-    done = size_done / (size_total / 100);
-
-  char str_done[512];
-  readable_fsize(size_done, str_done);
-  char str_total[512];
-  readable_fsize(size_total, str_total);
-
-  char progress_bar[] = "-------------------------";
-  for (int i = 0; i < 25; i++)
-    {
-      if (done > i*4)
-        progress_bar[i] = '#';
-    }
-
-  off_t speed = 0;
-  if (elapsed != 0)
-    speed = size_done / elapsed;
-  char str_speed[512];
-  readable_fsize(speed, str_speed);
-
-  int seconds = (size_total - size_done) / speed;
-  if (final)
-    seconds = (int)elapsed;
-  int minutes = seconds / 60;
-  seconds -= minutes * 60;
-
-  printf("\e[?25l");
-
-  if (final)
-    printf(" %3i%s [%s]   %8s / %s   %8s/s  %02i:%02i total  \n", done, "%", progress_bar,
-      str_done, str_total, str_speed, minutes, seconds);
-  else
-    printf(" %3i%s [%s]   %8s / %s   %8s/s  %02i:%02i ETA  \r", done, "%", progress_bar,
-      str_done, str_total, str_speed, minutes, seconds);
-
-  printf("\e[?25h");
-}
-
-
 /* Copy the regular file open on SRC_FD/SRC_NAME to DST_FD/DST_NAME,
    honoring the MAKE_HOLES setting and using the BUF_SIZE-byte buffer
    BUF for temporary storage.  Copy no more than MAX_N_READ bytes.
@@ -1834,6 +1784,54 @@ emit_verbose (char const *src, char const *dst, char const *backup_dst_name)
   if (backup_dst_name)
     printf (_(" (backup: %s)"), quote (backup_dst_name));
   putchar ('\n');
+}
+
+/* Emit the current progress. */
+static void
+emit_progress (off_t size_done, off_t size_total, clock_t start, bool final)
+{
+  if (final)
+    size_done = size_total;
+
+  double elapsed = (clock() - start) / (double)CLOCKS_PER_SEC;
+  int done = 0;
+  if (size_total != 0)
+    done = size_done / (size_total / 100);
+
+  char str_done[512];
+  readable_fsize(size_done, str_done);
+  char str_total[512];
+  readable_fsize(size_total, str_total);
+
+  char progress_bar[] = "-------------------------";
+  for (int i = 0; i < 25; i++)
+    {
+      if (done > i*4)
+        progress_bar[i] = '#';
+    }
+
+  off_t speed = 0;
+  if (elapsed != 0)
+    speed = size_done / elapsed;
+  char str_speed[512];
+  readable_fsize(speed, str_speed);
+
+  int seconds = (size_total - size_done) / speed;
+  if (final)
+    seconds = (int)elapsed;
+  int minutes = seconds / 60;
+  seconds -= minutes * 60;
+
+  printf("\e[?25l");
+
+  if (final)
+    printf(" %3i%s [%s]   %8s / %s   %8s/s  %02i:%02i total  \n", done, "%", progress_bar,
+      str_done, str_total, str_speed, minutes, seconds);
+  else
+    printf(" %3i%s [%s]   %8s / %s   %8s/s  %02i:%02i ETA  \r", done, "%", progress_bar,
+      str_done, str_total, str_speed, minutes, seconds);
+
+  printf("\e[?25h");
 }
 
 /* A wrapper around "setfscreatecon (NULL)" that exits upon failure.  */
