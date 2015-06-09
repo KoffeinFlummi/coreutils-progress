@@ -225,7 +225,7 @@ emit_progress (off_t size_done, off_t size_total, clock_t start, bool final)
 
   double elapsed = (clock() - start) / (double)CLOCKS_PER_SEC;
   int done = 0;
-  if (size_total != 0)
+  if (size_total / 100 != 0)
     done = size_done / (size_total / 100);
 
   char str_done[512];
@@ -246,7 +246,9 @@ emit_progress (off_t size_done, off_t size_total, clock_t start, bool final)
   char str_speed[512];
   readable_fsize(speed, str_speed);
 
-  int seconds = (size_total - size_done) / speed;
+  int seconds = 0;
+  if (speed != 0)
+    seconds = (size_total - size_done) / speed;
   if (final)
     seconds = (int)elapsed;
   int minutes = seconds / 60;
