@@ -45,7 +45,7 @@ export VERBOSE = yes
 # 4914152 9e
 export XZ_OPT = -8e
 
-old_NEWS_hash = 41e5c3133f5d8947e2ff13aab58fc52b
+old_NEWS_hash = 5c64c69e6303deaceecacc4b498a61fd
 
 # Add an exemption for sc_makefile_at_at_check.
 _makefile_at_at_check_exceptions = ' && !/^cu_install_prog/ && !/dynamic-dep/'
@@ -120,6 +120,8 @@ sc_tests_executable:
 	@set -o noglob 2>/dev/null || set -f;				   \
 	find_ext="-name '' "`printf -- "-o -name *%s " $(TEST_EXTENSIONS)`;\
 	find $(srcdir)/tests/ \( $$find_ext \) \! -perm -u+x -print	   \
+	  | { sed "s|^$(srcdir)/||"; git ls-files $(srcdir)/tests/; }	   \
+	  | sort | uniq -d						   \
 	  | sed -e "s/^/$(ME): Please make test executable: /" | grep .	   \
 	    && exit 1; :
 
@@ -647,6 +649,21 @@ sc_fs-magic-compare:
 	  $(srcdir)/src/stat.c | grep -Ev '^0x([0-9A-F]{4}){1,2}$$'	\
 	    && { echo '$(ME): Constants in src/stat.c should be 4 or 8' \
 		      'upper-case chars' 1>&2; exit 1; } || :
+
+# Ensure gnulib generated files are ignored
+# TODO: Perhaps augment gnulib-tool to do this in lib/.gitignore?
+sc_gitignore_missing:
+	@{ sed -n '/^\/lib\/.*\.h$$/{p;p}' .gitignore;			\
+	    find lib -name '*.in*' ! -name '*~' ! -name 'sys_*' |	\
+	      sed 's|^|/|; s|_\(.*in\.h\)|/\1|; s/\.in//'; } |		\
+	      sort | uniq -u | grep . && { echo '$(ME): Add above'	\
+		'entries to .gitignore' >&2; exit 1; } || :
+
+# Flag redundant entreis in .gitignore
+sc_gitignore_redundant:
+	@{ grep ^/lib .gitignore; sed 's|^|/lib|' lib/.gitignore; } |	\
+	    sort | uniq -d | grep . && { echo '$(ME): Remove above'	\
+	      'entries from .gitignore' >&2; exit 1; } || :
 
 # Override the default Cc: used in generating an announcement.
 announcement_Cc_ = $(translation_project_), \

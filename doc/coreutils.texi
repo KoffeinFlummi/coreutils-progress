@@ -206,7 +206,7 @@ Free Documentation License''.
 * Modified command invocation::  chroot env nice nohup stdbuf timeout
 * Process control::              kill
 * Delaying::                     sleep
-* Numeric operations::           factor seq
+* Numeric operations::           factor numfmt seq
 * File permissions::             Access modes
 * Date input formats::           Specifying date strings
 * Opening the software toolbox:: The software tools philosophy
@@ -15605,8 +15605,8 @@ and the hardware platform name if they are unknown.
 @cindex platform, hardware
 Print the hardware platform name
 (sometimes called the hardware implementation).
-Print @samp{unknown} if the kernel does not make this information
-easily available, as is the case with Linux kernels.
+Print @samp{unknown} if this information is not available.
+Note this is non-portable (even across GNU/Linux distributions).
 
 @item -m
 @itemx --machine
@@ -15634,8 +15634,8 @@ Print the network node hostname.
 @cindex host processor type
 Print the processor type (sometimes called the instruction set
 architecture or ISA).
-Print @samp{unknown} if the kernel does not make this information
-easily available, as is the case with Linux kernels.
+Print @samp{unknown} if this information is not available.
+Note this is non-portable (even across GNU/Linux distributions).
 
 @item -o
 @itemx --operating-system
@@ -16892,19 +16892,31 @@ Print (to standard error) warning messages about possible erroneous usage.
 Use the character @var{d} as input field separator (default: whitespace).
 @emph{Note}: Using non-default delimiter turns off automatic padding.
 
-@item --field=@var{n}
+@item --field=@var{fields}
 @opindex --field
-Convert the number in input field @var{n} (default: 1).
+Convert the number in input field @var{fields} (default: 1).
+@var{fields} supports @command{cut} style field ranges:
+
+@example
+N    N'th field, counted from 1
+N-   from N'th field, to end of line
+N-M  from N'th to M'th field (inclusive)
+-M   from first to M'th field (inclusive)
+-    all fields
+@end example
+
 
 @item --format=@var{format}
 @opindex --format
 Use printf-style floating FORMAT string.  The @var{format} string must contain
-one @samp{%f} directive, optionally with @samp{'}, @samp{-}, @samp{0}, or width
-modifiers.  The @samp{'} modifier will enable @option{--grouping}, the @samp{-}
-modifier will enable left-aligned @option{--padding} and the width modifier will
-enable right-aligned @option{--padding}.  The @samp{0} width modifier
-(without the @samp{-} modifier) will generate leading zeros on the number,
-up to the specified width.
+one @samp{%f} directive, optionally with @samp{'}, @samp{-}, @samp{0}, width
+or precision modifiers.  The @samp{'} modifier will enable @option{--grouping},
+the @samp{-} modifier will enable left-aligned @option{--padding} and the width
+modifier will enable right-aligned @option{--padding}.  The @samp{0} width
+modifier (without the @samp{-} modifier) will generate leading zeros on the
+number, up to the specified width.  A precision specification like @samp{%.1f}
+will override the precision determined from the input data or set due to
+@option{--to} option auto scaling.
 
 @item --from=@var{unit}
 @opindex --from
@@ -16916,7 +16928,8 @@ trigger an error.
 @opindex --from-unit
 Specify the input unit size (instead of the default 1).  Use this option when
 the input numbers represent other units (e.g. if the input number @samp{10}
-represents 10 units of 512 bytes, use @samp{--from=unit=512}).
+represents 10 units of 512 bytes, use @samp{--from-unit=512}).
+Suffixes are handled as with @samp{--from=auto}.
 
 @item --grouping
 @opindex --grouping
@@ -16970,7 +16983,8 @@ The default is no scaling, meaning all the digits of the number are printed.
 @opindex --to-unit
 Specify the output unit size (instead of the default 1).  Use this option when
 the output numbers represent other units (e.g. to represent @samp{4,000,000}
-bytes in blocks of 1KB, use @samp{--to=si --to=units=1000}).
+bytes in blocks of 1KB, use @samp{--to=si --to-unit=1000}).
+Suffixes are handled as with @samp{--from=auto}.
 
 @end table
 

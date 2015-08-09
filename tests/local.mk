@@ -79,7 +79,7 @@ TESTS_ENVIRONMENT =				\
   MAKE=$(MAKE)					\
   PACKAGE_VERSION=$(PACKAGE_VERSION)		\
   PERL='$(PERL)'				\
-  PREFERABLY_POSIX_SHELL='$(PREFERABLY_POSIX_SHELL)' \
+  SHELL='$(PREFERABLY_POSIX_SHELL)'		\
   ; test -d /usr/xpg4/bin && PATH='/usr/xpg4/bin$(PATH_SEPARATOR)'"$$PATH"; \
   PATH='$(abs_top_builddir)/src$(PATH_SEPARATOR)'"$$PATH" \
   ; 9>&2
@@ -172,6 +172,7 @@ all_tests =					\
   tests/tail-2/inotify-hash-abuse2.sh		\
   tests/tail-2/F-vs-missing.sh			\
   tests/tail-2/F-vs-rename.sh			\
+  tests/tail-2/F-headers.sh			\
   tests/tail-2/descriptor-vs-rename.sh		\
   tests/tail-2/inotify-rotate.sh		\
   tests/tail-2/inotify-rotate-resources.sh	\
@@ -235,6 +236,7 @@ all_tests =					\
   tests/misc/test.pl				\
   tests/misc/seq.pl				\
   tests/misc/seq-long-double.sh			\
+  tests/misc/seq-precision.sh			\
   tests/misc/head.pl				\
   tests/misc/head-elide-tail.pl			\
   tests/tail-2/tail-n0f.sh			\
@@ -280,6 +282,7 @@ all_tests =					\
   tests/misc/expand.pl				\
   tests/misc/expr.pl				\
   tests/misc/factor.pl				\
+  tests/misc/factor-parallel.sh			\
   tests/misc/false-status.sh			\
   tests/misc/fold.pl				\
   tests/misc/groups-dash.sh			\

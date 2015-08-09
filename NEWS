@@ -4,6 +4,14 @@ GNU coreutils NEWS                                    -*- outline -*-
 
 ** Bug fixes
 
+  shred again uses defined patterns for all iteration counts.
+  [bug introduced in coreutils-5.93]
+
+
+* Noteworthy changes in release 8.24 (2015-07-03) [stable]
+
+** Bug fixes
+
   dd supports more robust SIGINFO/SIGUSR1 handling for outputting statistics.
   Previously those signals may have inadvertently terminated the process.
 
@@ -24,12 +32,23 @@ GNU coreutils NEWS                                    -*- outline -*-
   file types, a warning is issued for source directories with duplicate names,
   or with -H the directory is copied again using the symlink name.
 
+  factor avoids writing partial lines, thus supporting parallel operation.
+  [the bug dates back to the initial implementation]
+
   head, od, split, tac, tail, and wc no longer mishandle input from files in
   /proc and /sys file systems that report somewhat-incorrect file sizes.
 
   mkdir --parents -Z now correctly sets the context for the last component,
   even if the parent directory exists and has a different default context.
   [bug introduced with the -Z restorecon functionality in coreutils-8.22]
+
+  numfmt no longer outputs incorrect overflowed values seen with certain
+  large numbers, or with numbers with increased precision.
+  [bug introduced when numfmt was added in coreutils-8.21]
+
+  numfmt now handles leading zeros correctly, not counting them when
+  settings processing limits, and making them optional with floating point.
+  [bug introduced when numfmt was added in coreutils-8.21]
 
   paste no longer truncates output for large input files.  This would happen
   for example with files larger than 4GiB on 32 bit systems with a '\n'
@@ -56,6 +75,10 @@ GNU coreutils NEWS                                    -*- outline -*-
   tail --follow consistently outputs all data for a truncated file.
   [bug introduced in the beginning]
 
+  tail --follow=name correctly outputs headers for multiple files
+  when those files are being created or renamed.
+  [bug introduced in coreutils-7.5]
+
 ** New features
 
   chroot accepts the new --skip-chdir option to not change the working directory
@@ -65,6 +88,9 @@ GNU coreutils NEWS                                    -*- outline -*-
 
   dd accepts a new status=progress level to print data transfer statistics
   on stderr approximately every second.
+
+  numfmt can now process multiple fields with field range specifications similar
+  to cut, and supports setting the output precision with the --format option.
 
   split accepts a new --separator option to select a record separator character
   other than the default newline character.
@@ -90,6 +116,9 @@ GNU coreutils NEWS                                    -*- outline -*-
   instances, which could result in both hardlinks being deleted.  Also on case
   insensitive file systems like HFS, mv would just remove a hardlinked 'file'
   if called like `mv file File`.  The feature was added in coreutils-5.0.1.
+
+  numfmt --from-unit and --to-unit options now interpret suffixes as SI units,
+  and IEC (power of 2) units are now specified by appending 'i'.
 
   tee will exit early if there are no more writable outputs.
 

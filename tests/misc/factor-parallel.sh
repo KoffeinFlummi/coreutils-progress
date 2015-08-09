@@ -1,7 +1,7 @@
 #!/bin/sh
-# Ensure "install -s --strip-program=PROGRAM" uses the program to strip
+# Test for complete lines on output
 
-# Copyright (C) 2008-2015 Free Software Foundation, Inc.
+# Copyright (C) 2015 Free Software Foundation, Inc.
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,24 +17,18 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 . "${srcdir=.}/tests/init.sh"; path_prepend_ ./src
-print_ver_ ginstall
-
-working_umask_or_skip_
-
-cat <<EOF > b || framework_failure_
-#!$SHELL
-sed s/b/B/ \$1 > \$1.t && mv \$1.t \$1
-EOF
-chmod a+x b || framework_failure_
+print_ver_ factor
 
 
-echo abc > src || fail=1
-echo aBc > exp || fail=1
-ginstall src dest -s --strip-program=./b || fail=1
-compare exp dest || fail=1
+odd() { LC_ALL=C sed '/[24680]$/d'; }
+primes() { LC_ALL=C sed 's/.*: //; / /d'; }
 
-# Check that install cleans up properly if strip fails.
-returns_ 1 ginstall src dest2 -s --strip-program=./FOO || fail=1
-test -e dest2 && fail=1
+# Before v8.24 the number reported here would vary
+# Note -u not supplied to split, increased batching of quickly processed items.
+# As processing cost increases it becomes advantageous to use -u to keep
+# the factor processes supplied with data.
+nprimes=$(seq 1e6 | odd | split -nr/4 --filter='factor' | primes | wc -l)
+
+test "$nprimes" = '78498' || fail=1
 
 Exit $fail
